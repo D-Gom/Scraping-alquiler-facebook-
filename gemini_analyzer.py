@@ -15,6 +15,7 @@ The response is expected as a JSON object with the following fields:
 
 import io
 import json
+import logging
 import re
 from typing import Any
 
@@ -23,6 +24,8 @@ import google.generativeai as genai
 from google.generativeai.types import HarmCategory, HarmBlockThreshold
 
 import config
+
+logger = logging.getLogger(__name__)
 
 # Configure the Gemini client once at import time.
 genai.configure(api_key=config.GEMINI_API_KEY)
@@ -51,12 +54,22 @@ def _build_system_prompt() -> str:
     )
 
 
-def _descargar_imagen(url: str) -> bytes | None:
-    """Download an image from *url* and return its bytes, or None on failure."""
+def _descargar_imagen(url: str) -> tuple[bytes, str] | None:
+    """Download an image from *url* and return ``(bytes, mime_type)``, or None on failure.
+
+    The MIME type is taken from the ``Content-Type`` response header so that
+    non-JPEG formats (PNG, WebP, …) are correctly identified.
+    """
     try:
         resp = requests.get(url, timeout=15)
         resp.raise_for_status()
-        return resp.content
+        content_type = resp.headers.get("content-type")
+        if not content_type:
+            logger.warning(
+                "No Content-Type header for image URL %s; defaulting to image/jpeg", url
+            )
+        mime_type = (content_type or "image/jpeg").split(";")[0].strip()
+        return resp.content, mime_type
     except Exception:
         return None
 
@@ -90,9 +103,10 @@ def analizar_post(post: dict[str, Any]) -> dict[str, Any]:
 
     # Attach up to 5 images to keep the request size manageable.
     for img_url in post.get("imagenes", [])[:5]:
-        img_bytes = _descargar_imagen(img_url)
-        if img_bytes:
-            parts.append({"mime_type": "image/jpeg", "data": img_bytes})
+        result = _descargar_imagen(img_url)
+        if result:
+            img_bytes, mime_type = result
+            parts.append({"mime_type": mime_type, "data": img_bytes})
 
     try:
         response = model.generate_content(parts)

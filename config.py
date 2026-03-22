@@ -5,10 +5,13 @@ Loads settings from a .env file (or environment variables) and exposes them
 as typed constants used across all other modules.
 """
 
+import logging
 import os
 from dotenv import load_dotenv
 
 load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 
 def _get_list(key: str, default: str = "") -> list[str]:
@@ -39,3 +42,15 @@ DB_PATH: str = os.getenv("DB_PATH", "alquileres.db")
 
 # --- Programación ---
 INTERVALO_MINUTOS: int = int(os.getenv("INTERVALO_MINUTOS", "60"))
+
+# --- Validation warnings ---
+_REQUIRED: list[tuple[str, str]] = [
+    ("FACEBOOK_GROUP_URLS", "no hay grupos de Facebook configurados"),
+    ("GEMINI_API_KEY", "el análisis con Gemini no funcionará"),
+    ("TELEGRAM_BOT_TOKEN", "las notificaciones de Telegram no funcionarán"),
+    ("TELEGRAM_CHAT_ID", "las notificaciones de Telegram no funcionarán"),
+]
+
+for _env_key, _hint in _REQUIRED:
+    if not os.getenv(_env_key):
+        logger.warning("Config: %s no está definido — %s.", _env_key, _hint)

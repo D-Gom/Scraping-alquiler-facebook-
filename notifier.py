@@ -20,11 +20,24 @@ def _api_url(method: str) -> str:
 
 
 def _escape_markdown_v2(text: str) -> str:
-    """Escape special characters for Telegram MarkdownV2."""
+    """Escape special characters for Telegram MarkdownV2 text content."""
     special = r"\_*[]()~`>#+-=|{}.!"
     for ch in special:
         text = text.replace(ch, f"\\{ch}")
     return text
+
+
+def _escape_markdown_v2_url(url: str) -> str:
+    """Escape characters that must be escaped inside a MarkdownV2 inline link URL.
+
+    According to Telegram docs, inside the ``(…)`` part of an inline link only
+    ``\\`` and ``)`` need to be escaped with a preceding ``\\``.
+    Applying the full :func:`_escape_markdown_v2` escaping to a URL would break
+    it (e.g. dots in domain names would become ``\\.``).
+    """
+    url = url.replace("\\", "\\\\")
+    url = url.replace(")", "\\)")
+    return url
 
 
 def enviar_alerta(post: dict[str, Any], analisis: dict[str, Any]) -> bool:
@@ -58,7 +71,7 @@ def enviar_alerta(post: dict[str, Any], analisis: dict[str, Any]) -> bool:
         f"💰 *Precio estimado:* {_escape_markdown_v2(str(precio))}\n"
         f"🛏 *Dormitorios:* {habitaciones}\n"
         f"👤 *Autor:* {_escape_markdown_v2(post.get('autor', 'Desconocido'))}\n"
-        f"🔗 [Ver publicación]({_escape_markdown_v2(post.get('url', ''))})"
+        f"🔗 [Ver publicación]({_escape_markdown_v2_url(post.get('url', ''))})"
     )
 
     chat_id = config.TELEGRAM_CHAT_ID

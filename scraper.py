@@ -19,6 +19,7 @@ Facebook actively fights automated access.  To reduce the risk of blocks:
 """
 
 import hashlib
+import os
 import random
 import time
 from typing import Any
@@ -27,8 +28,9 @@ from playwright.sync_api import sync_playwright
 
 import config
 
-# Path to the persistent browser profile directory.
-PROFILE_DIR = "fb_profile"
+# Path to the persistent browser profile directory (absolute so it is stable
+# regardless of the working directory from which the script is invoked).
+PROFILE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fb_profile")
 
 
 def _generar_post_id(url: str, texto: str) -> str:

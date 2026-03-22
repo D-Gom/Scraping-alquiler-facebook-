@@ -3,6 +3,10 @@ __pycache__/
 *.py[codz]
 *$py.class
 
+# Runtime artifacts
+fb_profile/
+alquileres.db
+
 # C extensions
 *.so
 
